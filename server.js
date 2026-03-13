@@ -16,7 +16,20 @@ const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'datecraft-secret-key-change-me';
 const FREE_CREDITS = 3; // 3 free credits for DateCraft
 
-// Supabase
+// Debug: Log env vars on startup
+console.log('ENV CHECK:', {
+  SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING',
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING'
+});
+
+// Supabase - with validation
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error('ERROR: Missing Supabase credentials. Check environment variables.');
+  console.error('SUPABASE_URL:', process.env.SUPABASE_URL);
+  process.exit(1);
+}
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
