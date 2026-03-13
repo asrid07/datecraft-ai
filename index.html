@@ -6,6 +6,7 @@
   <title>💘 DateCraft AI — AI Dating Profile Generator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Clash+Display:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://www.paypal.com/sdk/js?client-id=AfcCbsnW2zOY17lpxQviUMKNLo0_TlEeiwZ-CJ9GJDQNUrlhNehXhbFMcFJ6BeAfjQkfb70bUQauKmgX&vault=true&intent=capture"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -484,15 +485,10 @@
 <div class="modal" id="paymentModal" onclick="if(event.target===this)closePaymentModal()">
   <div class="modal-content" style="max-width:450px">
     <button class="modal-close" onclick="closePaymentModal()">×</button>
-    <h2 style="text-align:center;margin-bottom:24px">Get More Credits</h2>
+    <h2 style="text-align:center;margin-bottom:24px" id="paymentTitle">Get More Credits</h2>
     
     <div id="payment-plan-select">
-      <div class="price-card" style="margin-bottom:16px;cursor:pointer;border:2px solid var(--border)" onclick="selectPlan('pro')">
-        <div class="price-name">Pro Monthly</div>
-        <div class="price-amount" style="font-size:2rem">$9<span>/mo</span></div>
-        <div class="price-desc">Unlimited generations</div>
-      </div>
-      <div class="price-card" style="cursor:pointer;border:2px solid var(--border)" onclick="selectPlan('credits')">
+      <div class="price-card" style="margin-bottom:16px;cursor:pointer;border:2px solid var(--border)" onclick="selectPlan('credits')" id="credits-card">
         <div class="price-name">10 Credits</div>
         <div class="price-amount" style="font-size:2rem">$19</div>
         <div class="price-desc">One-time purchase</div>
@@ -500,7 +496,9 @@
     </div>
     
     <div id="payment-checkout-view" style="display:none">
-      <div id="paypal-btn-wrap"></div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:16px" onclick="backToPlanSelect()">← Back</button>
+      <p style="text-align:center;margin-bottom:16px;color:var(--text2)" id="checkout-desc">10 Credits - $19</p>
+      <div id="paypal-btn-container"></div>
     </div>
   </div>
 </div>
@@ -854,17 +852,80 @@ async function generatePhotoTips() {
 // ─────────────────────────────────────────
 // PAYMENT
 // ─────────────────────────────────────────
+let paypalButtonsRendered = false;
+
 function openPaymentModal() {
   document.getElementById('paymentModal').style.display = 'flex';
+  document.getElementById('payment-plan-select').style.display = 'block';
+  document.getElementById('payment-checkout-view').style.display = 'none';
 }
 
 function closePaymentModal() {
   document.getElementById('paymentModal').style.display = 'none';
 }
 
+function backToPlanSelect() {
+  document.getElementById('payment-plan-select').style.display = 'block';
+  document.getElementById('payment-checkout-view').style.display = 'none';
+}
+
 function selectPlan(plan) {
-  toast('Payment integration coming soon!', 'err');
-  // TODO: Integrate PayPal like JobCraft
+  document.getElementById('payment-plan-select').style.display = 'none';
+  document.getElementById('payment-checkout-view').style.display = 'block';
+  
+  const container = document.getElementById('paypal-btn-container');
+  container.innerHTML = ''; // Clear previous buttons
+  
+  // Render PayPal buttons for one-time payment
+  paypal.Buttons({
+    style: {
+      layout: 'vertical',
+      color: 'gold',
+      shape: 'rect',
+      label: 'paypal'
+    },
+    createOrder: async () => {
+      const token = sessionStorage.getItem('dc_token');
+      const res = await fetch(`${API_URL}/paypal/create-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount: 19, credits: 10 })
+      });
+      const data = await res.json();
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const token = sessionStorage.getItem('dc_token');
+      const res = await fetch(`${API_URL}/paypal/capture-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ orderID: data.orderID, credits: 10 })
+      });
+      const result = await res.json();
+      
+      if (result.success) {
+        document.getElementById('creditsNum').textContent = result.credits;
+        if (APP.user) {
+          APP.user.credits = result.credits;
+          sessionStorage.setItem('dc_user', JSON.stringify(APP.user));
+        }
+        closePaymentModal();
+        toast('10 credits added! 🎉', 'ok');
+      } else {
+        toast('Payment failed: ' + (result.error || 'Unknown error'), 'err');
+      }
+    },
+    onError: (err) => {
+      console.error('PayPal error:', err);
+      toast('Payment error. Please try again.', 'err');
+    }
+  }).render('#paypal-btn-container');
 }
 
 // ─────────────────────────────────────────
