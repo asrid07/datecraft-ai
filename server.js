@@ -16,7 +16,8 @@ const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'datecraft-secret-key-change-me';
 const FREE_CREDITS = 3; // 3 free credits for DateCraft
 
-// Debug: Log env vars on startup
+// Debug: Log ALL env var keys
+console.log('ALL ENV KEYS:', Object.keys(process.env).join(', '));
 console.log('ENV CHECK:', {
   SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING',
