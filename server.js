@@ -240,11 +240,13 @@ app.post('/ai/generate', authMiddleware, async (req, res) => {
       newCredits = updated.credits;
     }
     
-    // Log usage
+    // Log usage with user input
     await supabase.from('usage_logs').insert({
       user_id: user.id,
       action: action || 'generation',
-      credits_used: 1
+      credits_used: 1,
+      user_input: JSON.stringify(messages),
+      ai_output: result.content?.[0]?.text || ''
     });
     
     res.json({
